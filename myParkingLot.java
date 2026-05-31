@@ -120,12 +120,135 @@ public class Floor{
 
 //TICKET
 public class Ticket{
-    ticketId;
-    entryTime
-    exitTime
-    vehicle
-    SpotId
+    private final String ticketId;
+    private final LocalDateTime entryTime;
+    private LocalDateTime exitTime;
+    private final Vehicle vehicle;
+    private ParkingSpot Spot;
     
+    public Ticket(String ticketId,ParkingSpot Spot,Vehicle vehicle){
+        this.ticketId = ticketId;
+        this.vehicle = vehicle;
+        this.Spot = Spot;
+        this.entryTime = LocalDateTime.now();
+    }
+    //markExit
+    public void markExit(){
+        exitTime = LocalDateTime.now();
+    }
     //getDurationTime
+    public long getDurationTimeInHours(){
+        if(exitTime == null)return 0;
+        return Math.max(1,Duration.between(entryTime,exitTime).toHours());
+    }
+    //getters
     
 }
+//PRICING STRATEGY
+public interface PricingStrategy{
+    public double CalculateFee(Ticket ticket);
+}
+
+class CarPricingStrategy implements PricingStrategy{
+    @Override
+    double CalculateFee(Ticket ticket){
+        return 100*(ticket.getDurationTimeInHours());
+    }
+}
+
+
+class BikePricingStrategy implements PricingStrategy{
+    @Override
+    double CalculateFee(Ticket ticket){
+        return 200*(ticket.getDurationTimeInHours());
+    }
+}
+
+
+class TruckPricingStrategy implements PricingStrategy{
+    @Override
+    double CalculateFee(Ticket ticket){
+        return 300*(ticket.getDurationTimeInHours());
+    }
+}
+
+//PricingStrategyFactory
+class PricingStrategyFactory{
+    public static getPricingStrategy(VehicleType type){
+       return switch(type){
+           case CAR -> new CarPricingStrategy();
+           case BIKE -> new BikePricingStrategy();
+           case TRUCK -> new TruckPricingStrategy();
+       }
+    }
+}
+
+
+//Payment
+public interface Payment{
+    void Pay(double amount); 
+}
+
+class UPIPayment implements Payment{
+    public void Pay(double amount){
+        System.out.println("UPI Payment done for amount :"+amount);
+    }
+}
+class CardPayment implements Payment{
+    public void Pay(double amount){
+        System.out.println("Card Payment done for amount :"+amount);
+    }
+}
+
+//parkingLot
+public class ParkingLot{
+    private static ParkingLot instance;
+    private List<Floor>floors;
+    private PricingStrategy pricingStrategy;
+    
+    
+    private ParkingLot(){
+        this.floors = new ArrayList<>();
+    }
+    
+    public static synchronized getInstance(){
+        if(instance == null){
+            return new ParkingLot();
+        }
+        return instance;
+    }
+    //add floors
+    //park Vehicle
+    public Ticket parkVehicle(Vehicle v){
+        //findAvailableSpot
+        for(floor f:floors){
+            ParkingSpot spot = f.findAvailableSpot(v);
+            if(spot!=null){
+                spot.parkVehicle(v);
+                return new Ticket(UUID.randomUUID().toString(),spot,v);
+            }
+        }
+        throw new Runtime Exception (
+            "Parking Full"
+            );
+    }
+    //unpark Vehicle
+    public double unParkVehicle(Ticket ticket,PricingStrategy pricingStrategy){
+        PricingStrategy PricingStrategyType= PricingStrategyFactory.getPricingStrategy(ticket.);
+        double fees = PricingStrategyType.CalculateFee();
+        
+    }
+    
+    
+    
+}
+
+
+
+
+
+
+
+
+
+
