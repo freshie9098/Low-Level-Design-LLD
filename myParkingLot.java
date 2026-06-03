@@ -1,9 +1,130 @@
-//VEHICLE
+import java.time.LocalDateTime;
+import java.util.*;
 
-public enum VehicleType{
-    CAR,
-    BIKE,
-    TRUCK
+ParkingLot
+
+ParkingFloor
+
+ParkingSpot
+ ├── BikeSpot
+ ├── CarSpot
+ └── TruckSpot
+
+Vehicle
+ ├── Bike
+ ├── Car
+ └── Truck
+
+Ticket
+
+EntryGate
+
+ExitGate
+
+Payment
+
+ParkingManager
+
+PricingStrategy
+ ├── HourlyPricingStrategy
+ └── FlatPricingStrategy
+
+
+public enum vehicleType {
+	car,bike,truck
+}
+public enum SpotType {
+	carSpot,bikeSpot,truckSpot
+}
+
+public class ParkingManager {
+
+    private final Map<SpotType, PriorityQueue<ParkingSpot>> availableSpots;
+
+    public ParkingManager() {
+
+        availableSpots = new HashMap<>();
+
+        for (SpotType spotType : SpotType.values()) {
+
+            availableSpots.put(
+                    spotType,
+                    new PriorityQueue<>(
+                            (a, b) -> {
+
+                                if (a.getFloorId() != b.getFloorId()) {
+                                    return a.getFloorId() - b.getFloorId();
+                                }
+
+                                return a.getSpotNumber() - b.getSpotNumber();
+                            }
+                    )
+            );
+        }
+    }
+
+    public void addParkingSpot(ParkingSpot spot) {
+
+        availableSpots
+                .get(spot.getSpotType())
+                .offer(spot);
+    }
+
+    public Ticket parkVehicle(Vehicle vehicle) {
+
+        SpotType requiredSpotType = getSpotType(vehicle);
+
+        PriorityQueue<ParkingSpot> pq =
+                availableSpots.get(requiredSpotType);
+
+        if (pq == null || pq.isEmpty()) {
+            throw new RuntimeException("No parking spot available");
+        }
+
+        ParkingSpot spot = pq.poll();
+
+        spot.parkVehicle(vehicle);
+
+        return new Ticket(
+                UUID.randomUUID().toString(),
+                LocalDateTime.now(),
+                spot,
+                vehicle
+        );
+    }
+
+    public void unparkVehicle(Ticket ticket) {
+
+        ParkingSpot spot = ticket.getParkingSpot();
+
+        spot.removeVehicle();
+
+        availableSpots
+                .get(spot.getSpotType())
+                .offer(spot);
+    }
+
+    private SpotType getSpotType(Vehicle vehicle) {
+
+        switch (vehicle.getVehicleType()) {
+
+            case BIKE:
+                return SpotType.BIKE_SPOT;
+
+            case CAR:
+                return SpotType.CAR_SPOT;
+
+            case TRUCK:
+                return SpotType.TRUCK_SPOT;
+
+            default:
+                throw new IllegalArgumentException("Invalid vehicle type");
+        }
+    }
+
+    public int getAvailableSpotsCount(SpotType spotType) {
+        return availableSpots.get(spotType).size();
+    }
 }
 
 public abstract class Vehicle{
